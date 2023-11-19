@@ -3,7 +3,6 @@ package mongo
 import (
 	"SongUser/auth"
 	"context"
-	"errors"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -19,7 +18,6 @@ type UserInfo struct {
 func NewUserRepository(dbName, collName string) (UserRepository, error) {
 	client, err := getMongoClient()
 	if err != nil {
-		log.Printf("Error getting mongo client: %+v", err)
 		return nil, err
 	}
 
@@ -55,8 +53,7 @@ func (db *DBUserRepository) FindUser(id string) (*UserInfo, error) {
 	var result UserInfo
 	filter := bson.D{{"id", id}}
 	if err := db.Collection.FindOne(context.TODO(), filter).Decode(&result); err != nil {
-		log.Printf("User not found for ID %s", id)
-		return nil, errors.New("user not found")
+		return nil, fmt.Errorf("%w", &userNotFoundError{Id: id})
 	}
 	return &result, nil
 }
@@ -64,7 +61,6 @@ func (db *DBUserRepository) FindUser(id string) (*UserInfo, error) {
 func (db *DBUserRepository) Close() error {
 	err := db.Client.Disconnect(context.TODO())
 	if err != nil {
-		fmt.Printf("Error disconecting mongo client: %+v", err)
 		return err
 	}
 	return nil
@@ -82,13 +78,11 @@ func (db *DBUserRepository) clearCollection() error {
 func Login(id string, pw string, repo UserRepository) error {
 	result, err := repo.FindUser(id)
 	if err != nil {
-		log.Printf(err.Error())
 		return err
 	}
 
 	if matched := auth.CheckPwHash(pw, result.Pw); !matched {
-		log.Printf("Password mismatch for user ID %s", id)
-		return errors.New("password mismatch")
+		return &passwordMismatchError{Id: id}
 	}
 
 	log.Printf("User authenticated: %s\n", id)
@@ -98,7 +92,7 @@ func Login(id string, pw string, repo UserRepository) error {
 func Register(id, pw, name string, repo UserRepository) error {
 	_, err := repo.FindUser(id)
 	if err == nil {
-		return errors.New("user already exists")
+		return &userAlreadyExistsError{Id: id}
 	}
 
 	hashPw, err := auth.HashPw(pw)
