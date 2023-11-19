@@ -39,6 +39,10 @@ type DBUserRepository struct {
 	*mongo.Collection
 }
 
+func GetUserInfoRepository() (UserRepository, error) {
+	return NewUserRepository("user", "userinfo")
+}
+
 func (db *DBUserRepository) InsertOne(id, pw, name string) error {
 	userInfo := &UserInfo{
 		Name: name,
@@ -53,7 +57,7 @@ func (db *DBUserRepository) FindUser(id string) (*UserInfo, error) {
 	var result UserInfo
 	filter := bson.D{{"id", id}}
 	if err := db.Collection.FindOne(context.TODO(), filter).Decode(&result); err != nil {
-		return nil, fmt.Errorf("%w", &userNotFoundError{Id: id})
+		return nil, fmt.Errorf("%w", &UserNotFoundError{Id: id})
 	}
 	return &result, nil
 }
@@ -82,7 +86,7 @@ func Login(id string, pw string, repo UserRepository) error {
 	}
 
 	if matched := auth.CheckPwHash(pw, result.Pw); !matched {
-		return &passwordMismatchError{Id: id}
+		return &PasswordMismatchError{Id: id}
 	}
 
 	log.Printf("User authenticated: %s\n", id)
@@ -92,7 +96,7 @@ func Login(id string, pw string, repo UserRepository) error {
 func Register(id, pw, name string, repo UserRepository) error {
 	_, err := repo.FindUser(id)
 	if err == nil {
-		return &userAlreadyExistsError{Id: id}
+		return &UserAlreadyExistsError{Id: id}
 	}
 
 	hashPw, err := auth.HashPw(pw)

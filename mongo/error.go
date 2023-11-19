@@ -2,33 +2,33 @@ package mongo
 
 import "fmt"
 
-type cannotConnectToMongoCloudError struct {
+type CannotConnectToMongoCloudError struct {
 }
 
-func (e *cannotConnectToMongoCloudError) Error() string {
+func (e *CannotConnectToMongoCloudError) Error() string {
 	return fmt.Sprintf("can't connect to mongo cloud")
 }
 
-type userNotFoundError struct {
+type UserNotFoundError struct {
 	Id string
 }
 
-func (e *userNotFoundError) Error() string {
+func (e *UserNotFoundError) Error() string {
 	return fmt.Sprintf("user with Id(%s) not found", e.Id)
 }
 
-type userAlreadyExistsError struct {
+type UserAlreadyExistsError struct {
 	Id string
 }
 
-func (e *userAlreadyExistsError) Error() string {
+func (e *UserAlreadyExistsError) Error() string {
 	return fmt.Sprintf("user with Id(%s) already exists", e.Id)
 }
 
-type passwordMismatchError struct {
+type PasswordMismatchError struct {
 	Id string
 }
 
-func (e *passwordMismatchError) Error() string {
+func (e *PasswordMismatchError) Error() string {
 	return fmt.Sprintf("user password is mismatched with user id(%s)", e.Id)
 }

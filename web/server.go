@@ -2,8 +2,8 @@ package web
 
 import (
 	"SongUser/mongo"
+	"errors"
 	"github.com/gin-gonic/gin"
-	"log"
 	"net/http"
 )
 
@@ -33,19 +33,25 @@ func loginHandler(c *gin.Context) {
 		return
 	}
 
-	repo, err := mongo.NewUserRepository("user", "userinfo")
+	repo, err := mongo.GetUserInfoRepository()
 	if err != nil {
-		log.Printf("Error creating new user repository: %+v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Can't access to user information database"})
 		return
 	}
 
 	err = mongo.Login(cred.Id, cred.Pw, repo)
 	if err != nil {
-		if err.Error() == "user not found" || err.Error() == "password mismatch" {
+		var userNotFoundError *mongo.UserNotFoundError
+		if errors.As(err, &userNotFoundError) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+			return
 		}
+		var passwordMismatchError *mongo.PasswordMismatchError
+		if ok := errors.As(err, &passwordMismatchError); ok {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Password mismatch"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -60,7 +66,17 @@ func registerHandler(c *gin.Context) {
 		return
 	}
 
-	mongo.Register(cred.Id, cred.Pw, cred.Name)
+	repo, err := mongo.GetUserInfoRepository()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Can't access to user information database"})
+		return
+	}
+
+	err = mongo.Register(cred.Id, cred.Pw, cred.Name, repo)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Can't access to user information database"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Register success"})
 }

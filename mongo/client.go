@@ -23,7 +23,7 @@ func getMongoClient() (*mongo.Client, error) {
 			clientOptions := options.Client().ApplyURI(getCloudUrl())
 			client, err := mongo.Connect(context.TODO(), clientOptions)
 			if err != nil {
-				clientInstanceError = fmt.Errorf("%w: %w", &cannotConnectToMongoCloudError{}, err)
+				clientInstanceError = fmt.Errorf("%w: %w", &CannotConnectToMongoCloudError{}, err)
 			}
 			clientInstance = client
 		}
