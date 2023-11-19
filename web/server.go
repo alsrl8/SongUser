@@ -47,7 +47,7 @@ func loginHandler(c *gin.Context) {
 			return
 		}
 		var passwordMismatchError *mongo.PasswordMismatchError
-		if ok := errors.As(err, &passwordMismatchError); ok {
+		if errors.As(err, &passwordMismatchError) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Password mismatch"})
 			return
 		}
@@ -73,7 +73,11 @@ func registerHandler(c *gin.Context) {
 	}
 
 	err = mongo.Register(cred.Id, cred.Pw, cred.Name, repo)
-	if err != nil {
+	var userAlreadyExistsError *mongo.UserAlreadyExistsError
+	if errors.As(err, &userAlreadyExistsError) {
+		c.JSON(http.StatusConflict, gin.H{"error": "User already exists"})
+		return
+	} else if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Can't access to user information database"})
 		return
 	}

@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	"errors"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -46,6 +47,20 @@ func TestRegister(t *testing.T) {
 	}
 }
 
+func TestRegister_Fail(t *testing.T) {
+	repo, err := mockUserRepository()
+	assert.Nil(t, err)
+	for _, user := range mockUsers {
+		err = Register(user.Id, user.Pw, user.Name, repo)
+		var userAlreadyExistsError *UserAlreadyExistsError
+		if errors.As(err, &userAlreadyExistsError) {
+			assert.NotNil(t, userAlreadyExistsError, "Expected UserAlreadyExistsError, got nil")
+		} else {
+			t.Errorf("Expected UserAlreadyExistsError, got different error or nil")
+		}
+	}
+}
+
 func TestLogin_Success(t *testing.T) {
 	repo, err := mockUserRepository()
 	assert.Nil(t, err)
@@ -60,7 +75,7 @@ func TestLogin_Fail(t *testing.T) {
 	assert.Nil(t, err)
 	for _, user := range mockLoginFailUsers {
 		err = Login(user.Id, user.Pw, repo)
-		assert.NotNil(t, err)
+		assert.Error(t, err)
 	}
 }
 
